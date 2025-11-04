@@ -18,7 +18,7 @@
         android:layout_marginBottom="16dp">
 
         <EditText
-            android:id="@+id/consultarClima"
+            android:id="@+id/etConsultarClima"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_weight="6"
