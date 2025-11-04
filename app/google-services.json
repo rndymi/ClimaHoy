@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "467179565029",
+    "project_id": "climahoy-fem-2025",
+    "storage_bucket": "climahoy-fem-2025.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:467179565029:android:063ae4ee4d5f74eadf890c",
+        "android_client_info": {
+          "package_name": "es.upm.miw.climahoy"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "467179565029-d8s560ekm9ouaa02q907u75qfd8k7na7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAguaADf3T11Qhw1JV_lbrTRqZMnAJVb3o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "467179565029-d8s560ekm9ouaa02q907u75qfd8k7na7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

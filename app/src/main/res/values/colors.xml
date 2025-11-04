@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Morado principal para barra y botones -->
+    <color name="colorPrimary">#9960d6</color>
+    <color name="colorOnPrimary">#FFFFFF</color>
+
+    <!-- Fondo y texto del cuerpo -->
+    <color name="colorBackground">#FFFFFF</color>
+    <color name="colorOnBackground">#000000</color>
+
+    <!-- Opcionales por si los pides luego -->
+    <color name="colorPrimaryContainer">#B18AE3</color>
+    <color name="colorSecondary">#FA9B9B</color>
+</resources>
