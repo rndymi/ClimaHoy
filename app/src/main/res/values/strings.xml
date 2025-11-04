@@ -1,3 +1,14 @@
 <resources>
     <string name="app_name">Clima Hoy</string>
+
+    <string name="btnBuscarConsulta">Botón buscar</string>
+    <string name="consultarBusqueda">Cuidad o Municipio</string>
+
+    <string name="menu_ajustes">Ajustes</string>
+    <string name="menu_acerca">Acerca de</string>
+    <string name="menu_cerrar_sesion">Cerrar sesión</string>
+
+    <string name="about_title">Acerca de Clima Hoy</string>
+    <string name="about_message">Aplicación para consultar el clima actual en tu ciudad.</string>
+
 </resources>

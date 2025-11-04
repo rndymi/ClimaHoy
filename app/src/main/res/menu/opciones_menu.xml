@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/opcAjustes"
+        android:title="@string/menu_ajustes"
+        android:icon="@android:drawable/ic_menu_preferences"
+        android:orderInCategory="100" />
+
+    <item
+        android:id="@+id/opcAcercaDe"
+        android:title="@string/menu_acerca"
+        android:icon="@android:drawable/ic_menu_info_details"
+        android:orderInCategory="200" />
+
+    <item
+        android:id="@+id/opcCerrarSesion"
+        android:title="@string/menu_cerrar_sesion"
+        android:icon="@android:drawable/ic_lock_power_off"
+        android:orderInCategory="300" />
+
+</menu>
