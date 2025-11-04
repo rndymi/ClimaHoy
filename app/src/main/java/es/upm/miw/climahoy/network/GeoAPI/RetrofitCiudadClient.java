@@ -1,4 +1,4 @@
-package es.upm.miw.climahoy.network;
+package es.upm.miw.climahoy.network.GeoAPI;
 
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;

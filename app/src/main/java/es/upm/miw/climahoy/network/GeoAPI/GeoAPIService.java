@@ -1,4 +1,4 @@
-package es.upm.miw.climahoy.network;
+package es.upm.miw.climahoy.network.GeoAPI;
 
 import es.upm.miw.climahoy.models.CiudadList;
 import retrofit2.Call;

@@ -21,20 +21,26 @@ import androidx.core.view.WindowInsetsCompat;
 import com.firebase.ui.auth.AuthUI;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.gson.Gson;
 
 import org.jspecify.annotations.NonNull;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import es.upm.miw.climahoy.models.Ciudad;
 import es.upm.miw.climahoy.models.CiudadList;
 import es.upm.miw.climahoy.models.Clima;
 import es.upm.miw.climahoy.models.ClimaActual;
-import es.upm.miw.climahoy.network.GeoAPIService;
-import es.upm.miw.climahoy.network.RetrofitCiudadClient;
-import es.upm.miw.climahoy.network.RetrofitClimaClient;
-import es.upm.miw.climahoy.network.WeatherAPIService;
+import es.upm.miw.climahoy.models.HistorialClimaConsultada;
+import es.upm.miw.climahoy.network.GeoAPI.GeoAPIService;
+import es.upm.miw.climahoy.network.GeoAPI.RetrofitCiudadClient;
+import es.upm.miw.climahoy.network.WeatherAPI.RetrofitClimaClient;
+import es.upm.miw.climahoy.network.WeatherAPI.WeatherAPIService;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -141,19 +147,17 @@ public class MainActivity extends AppCompatActivity {
                         return;
                     }
 
-                    // Tomamos la primera ciudad encontrada
                     Ciudad ciudad = ciudades.get(0);
                     double lat = ciudad.getLatitude();
                     double lon = ciudad.getLongitude();
 
-                    // Ahora llamamos a la segunda API con esas coordenadas
                     weatherAPIService.getCurrentWeather(lat, lon, true).enqueue(new Callback<Clima>() {
                         @Override
                         public void onResponse(Call<Clima> call, Response<Clima> response) {
                             if (response.isSuccessful() && response.body() != null) {
                                 Clima clima = response.body();
                                 ClimaActual actual = clima.getClimaActual();
-                                Log.d(LOG_TAG, "Response: " + new Gson().toJson(response.body()));
+                                Log.d(LOG_TAG, "Responde: " + new Gson().toJson(response.body()));
 
 
                                 String info = "🌆 " + ciudad.getName() + " (" + ciudad.getCountry() + ")\n"
@@ -164,6 +168,27 @@ public class MainActivity extends AppCompatActivity {
                                         + "🗺 Zona horaria: " + clima.getTimezone();
 
                                 tvRespuesta.setText(info);
+
+                                try {
+                                    FirebaseDatabase database = FirebaseDatabase.getInstance();
+                                    DatabaseReference ref = database.getReference("historial_clima_consulta");
+
+                                    String fechaConsulta = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+                                    HistorialClimaConsultada registro = new HistorialClimaConsultada(
+                                            ciudad.getName(),
+                                            ciudad.getCountry(),
+                                            actual.getTemperature(),
+                                            actual.getWindspeed(),
+                                            fechaConsulta
+                                    );
+
+                                    ref.push().setValue(registro)
+                                            .addOnSuccessListener(aVoid -> Log.d(LOG_TAG, "Historial guardado correctamente"))
+                                            .addOnFailureListener(e -> Log.e(LOG_TAG, "Error al guardar historial: " + e.getMessage()));
+                                } catch (Exception e) {
+                                    Log.e(LOG_TAG, "Se produjo un error al guardar el historial: " + e.getMessage());
+                                }
+
                             } else {
                                 tvRespuesta.setText("⚠️ No se pudo obtener el clima actual.");
                             }
