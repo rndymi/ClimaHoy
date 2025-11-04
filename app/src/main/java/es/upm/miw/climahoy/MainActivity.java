@@ -2,9 +2,12 @@ package es.upm.miw.climahoy;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Button;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -21,7 +24,25 @@ import com.google.firebase.auth.FirebaseUser;
 
 import org.jspecify.annotations.NonNull;
 
+import java.util.List;
+
+import javax.xml.transform.Result;
+
+import es.upm.miw.climahoy.models.Ciudad;
+import es.upm.miw.climahoy.models.CiudadList;
+import es.upm.miw.climahoy.network.GeoAPIService;
+import es.upm.miw.climahoy.network.RetrofitClient;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class MainActivity extends AppCompatActivity {
+
+    private static final String LOG_TAG = "MiW";
+    private EditText etConsultarClima;
+    private ImageButton btnBuscar;
+    private TextView tvRespuesta;
+    private GeoAPIService geoAPIService;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +66,16 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, LoginActivity.class));
             finish();
         }
+
+        etConsultarClima = findViewById(R.id.etConsultarClima);
+        btnBuscar = findViewById(R.id.btnBuscar);
+        tvRespuesta = findViewById(R.id.tvRespuesta);
+
+        // Inicializamos Retrofit
+        geoAPIService = RetrofitClient.getInstance().create(GeoAPIService.class);
+
+        // Botón buscar
+        btnBuscar.setOnClickListener(this::obtenerInfoBusqueda);
 
         /*
         tvUserInfo = findViewById(R.id.tvUserInfo);
@@ -103,6 +134,49 @@ public class MainActivity extends AppCompatActivity {
 
             return super.onOptionsItemSelected(item);
         }
+    }
+
+
+    public void obtenerInfoBusqueda(View view) {
+        String name = etConsultarClima.getText().toString().trim();
+
+        if (name.isEmpty()) {
+            Toast.makeText(this, "Introduce una ciudad o municipio", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        geoAPIService.getCityByName(name, 10, "es").enqueue(new retrofit2.Callback<CiudadList>() {
+    @Override
+    public void onResponse(retrofit2.Call<CiudadList> call, retrofit2.Response<CiudadList> response) {
+        if (response.isSuccessful() && response.body() != null && response.body().getResults() != null) {
+            List<Ciudad> ciudades = response.body().getResults();
+            if (ciudades.isEmpty()) {
+                tvRespuesta.setText("⚠️ No se encontraron resultados.");
+                return;
+            }
+
+            StringBuilder sb = new StringBuilder();
+            for (Ciudad c : ciudades) {
+                sb.append("🏙️ ").append(c.getName())
+                  .append(" (").append(c.getCountry()).append(")")
+                  .append("\nLatitud: ").append(c.getLatitude())
+                  .append("\nLongitud: ").append(c.getLongitude())
+                  .append("\nElevación: ").append(c.getElevation())
+                  .append("\nPoblación: ").append(c.getPopulation() != null ? c.getPopulation() : "N/A")
+                  .append("\nZona horaria: ").append(c.getTimezone())
+                  .append("\n\n");
+            }
+            tvRespuesta.setText(sb.toString());
+        } else {
+            tvRespuesta.setText("⚠️ No se encontraron resultados o la respuesta fue vacía.");
+        }
+    }
+
+    @Override
+    public void onFailure(retrofit2.Call<CiudadList> call, Throwable t) {
+        tvRespuesta.setText("❌ Error de conexión: " + t.getMessage());
+    }
+});
     }
 
 }
