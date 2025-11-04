@@ -21,17 +21,20 @@ import androidx.core.view.WindowInsetsCompat;
 import com.firebase.ui.auth.AuthUI;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.gson.Gson;
 
 import org.jspecify.annotations.NonNull;
 
 import java.util.List;
 
-import javax.xml.transform.Result;
-
 import es.upm.miw.climahoy.models.Ciudad;
 import es.upm.miw.climahoy.models.CiudadList;
+import es.upm.miw.climahoy.models.Clima;
+import es.upm.miw.climahoy.models.ClimaActual;
 import es.upm.miw.climahoy.network.GeoAPIService;
-import es.upm.miw.climahoy.network.RetrofitClient;
+import es.upm.miw.climahoy.network.RetrofitCiudadClient;
+import es.upm.miw.climahoy.network.RetrofitClimaClient;
+import es.upm.miw.climahoy.network.WeatherAPIService;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -39,10 +42,14 @@ import retrofit2.Response;
 public class MainActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = "MiW";
+
+    private GeoAPIService geoAPIService;
+    private WeatherAPIService weatherAPIService;
+
     private EditText etConsultarClima;
     private ImageButton btnBuscar;
     private TextView tvRespuesta;
-    private GeoAPIService geoAPIService;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -71,30 +78,10 @@ public class MainActivity extends AppCompatActivity {
         btnBuscar = findViewById(R.id.btnBuscar);
         tvRespuesta = findViewById(R.id.tvRespuesta);
 
-        // Inicializamos Retrofit
-        geoAPIService = RetrofitClient.getInstance().create(GeoAPIService.class);
+        geoAPIService = RetrofitCiudadClient.getInstance().create(GeoAPIService.class);
+        weatherAPIService = RetrofitClimaClient.getInstance().create(WeatherAPIService.class);
 
-        // Botón buscar
         btnBuscar.setOnClickListener(this::obtenerInfoBusqueda);
-
-        /*
-        tvUserInfo = findViewById(R.id.tvUserInfo);
-        btnLogout = findViewById(R.id.btnLogout);
-
-        FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
-
-        if (user != null) {
-            String userText = "Usuario: " +
-                    (user.getDisplayName() != null ? user.getDisplayName() : "Sin nombre") +
-                    "\nEmail: " + user.getEmail();
-            tvUserInfo.setText(userText);
-        } else {
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
-        }
-
-        btnLogout.setOnClickListener(v -> cerrarSesion());
-        */
 
     }
 
@@ -136,7 +123,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
     public void obtenerInfoBusqueda(View view) {
         String name = etConsultarClima.getText().toString().trim();
 
@@ -145,38 +131,61 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        geoAPIService.getCityByName(name, 10, "es").enqueue(new retrofit2.Callback<CiudadList>() {
-    @Override
-    public void onResponse(retrofit2.Call<CiudadList> call, retrofit2.Response<CiudadList> response) {
-        if (response.isSuccessful() && response.body() != null && response.body().getResults() != null) {
-            List<Ciudad> ciudades = response.body().getResults();
-            if (ciudades.isEmpty()) {
-                tvRespuesta.setText("⚠️ No se encontraron resultados.");
-                return;
+        geoAPIService.getCityByName(name, 1, "es").enqueue(new Callback<CiudadList>() {
+            @Override
+            public void onResponse(Call<CiudadList> call, Response<CiudadList> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getResults() != null) {
+                    List<Ciudad> ciudades = response.body().getResults();
+                    if (ciudades.isEmpty()) {
+                        tvRespuesta.setText("⚠️ No se encontraron resultados.");
+                        return;
+                    }
+
+                    // Tomamos la primera ciudad encontrada
+                    Ciudad ciudad = ciudades.get(0);
+                    double lat = ciudad.getLatitude();
+                    double lon = ciudad.getLongitude();
+
+                    // Ahora llamamos a la segunda API con esas coordenadas
+                    weatherAPIService.getCurrentWeather(lat, lon, true).enqueue(new Callback<Clima>() {
+                        @Override
+                        public void onResponse(Call<Clima> call, Response<Clima> response) {
+                            if (response.isSuccessful() && response.body() != null) {
+                                Clima clima = response.body();
+                                ClimaActual actual = clima.getClimaActual();
+                                Log.d(LOG_TAG, "Response: " + new Gson().toJson(response.body()));
+
+
+                                String info = "🌆 " + ciudad.getName() + " (" + ciudad.getCountry() + ")\n"
+                                        + "🌡 Temperatura: " + actual.getTemperature() + " °C\n"
+                                        + "💨 Viento: " + actual.getWindspeed() + " km/h\n"
+                                        + "🧭 Dirección: " + actual.getWinddirection() + "°\n"
+                                        + "🕒 Hora: " + actual.getTime() + "\n"
+                                        + "🗺 Zona horaria: " + clima.getTimezone();
+
+                                tvRespuesta.setText(info);
+                            } else {
+                                tvRespuesta.setText("⚠️ No se pudo obtener el clima actual.");
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Call<Clima> call, Throwable t) {
+                            tvRespuesta.setText("❌ Error al obtener el clima: " + t.getMessage());
+                        }
+                    });
+
+                } else {
+                    tvRespuesta.setText("⚠️ No se encontraron resultados o la respuesta fue vacía.");
+                }
             }
 
-            StringBuilder sb = new StringBuilder();
-            for (Ciudad c : ciudades) {
-                sb.append("🏙️ ").append(c.getName())
-                  .append(" (").append(c.getCountry()).append(")")
-                  .append("\nLatitud: ").append(c.getLatitude())
-                  .append("\nLongitud: ").append(c.getLongitude())
-                  .append("\nElevación: ").append(c.getElevation())
-                  .append("\nPoblación: ").append(c.getPopulation() != null ? c.getPopulation() : "N/A")
-                  .append("\nZona horaria: ").append(c.getTimezone())
-                  .append("\n\n");
+            @Override
+            public void onFailure(Call<CiudadList> call, Throwable t) {
+                tvRespuesta.setText("❌ Error de conexión: " + t.getMessage());
             }
-            tvRespuesta.setText(sb.toString());
-        } else {
-            tvRespuesta.setText("⚠️ No se encontraron resultados o la respuesta fue vacía.");
-        }
-    }
+        });
 
-    @Override
-    public void onFailure(retrofit2.Call<CiudadList> call, Throwable t) {
-        tvRespuesta.setText("❌ Error de conexión: " + t.getMessage());
-    }
-});
     }
 
 }

@@ -1,6 +1,5 @@
 package es.upm.miw.climahoy.network;
 
-
 import es.upm.miw.climahoy.models.CiudadList;
 import retrofit2.Call;
 import retrofit2.http.GET;
