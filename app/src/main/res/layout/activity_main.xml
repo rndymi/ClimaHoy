@@ -17,15 +17,21 @@
         android:gravity="center_vertical"
         android:layout_marginBottom="16dp">
 
-        <EditText
+        <AutoCompleteTextView
             android:id="@+id/etConsultarClima"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
             android:layout_weight="6"
-            android:padding="10dp"
-            android:inputType="text"
+            android:padding="12dp"
+            android:inputType="textCapWords"
+            android:completionThreshold="4"
+            android:drawablePadding="8dp"
             android:hint="@string/consultarBusqueda"
-            android:maxLines="1"/>
+            android:dropDownHeight="250dp"
+            android:dropDownVerticalOffset="5dp"
+            android:dropDownWidth="match_parent"
+            android:scrollbars="vertical"
+            android:singleLine="true" />
 
         <ImageButton
             android:id="@+id/btnBuscar"

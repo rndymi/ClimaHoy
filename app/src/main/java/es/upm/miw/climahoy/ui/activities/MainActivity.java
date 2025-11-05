@@ -2,10 +2,14 @@ package es.upm.miw.climahoy.ui.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
@@ -28,10 +32,15 @@ import com.google.gson.Gson;
 import org.jspecify.annotations.NonNull;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.TimeZone;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import es.upm.miw.climahoy.R;
 import es.upm.miw.climahoy.models.Ciudad;
@@ -41,6 +50,7 @@ import es.upm.miw.climahoy.models.ClimaActual;
 import es.upm.miw.climahoy.models.HistorialClimaConsultada;
 import es.upm.miw.climahoy.models.local.ClimaHistorial;
 import es.upm.miw.climahoy.models.local.ClimaRepositorio;
+import es.upm.miw.climahoy.models.local.ClimaRoomDatabase;
 import es.upm.miw.climahoy.network.GeoAPI.GeoAPIService;
 import es.upm.miw.climahoy.network.GeoAPI.RetrofitCiudadClient;
 import es.upm.miw.climahoy.network.WeatherAPI.RetrofitClimaClient;
@@ -56,9 +66,12 @@ public class MainActivity extends AppCompatActivity {
     private GeoAPIService geoAPIService;
     private WeatherAPIService weatherAPIService;
 
-    private EditText etConsultarClima;
     private ImageButton btnBuscar;
     private TextView tvRespuesta;
+    private AutoCompleteTextView etConsultarClima;
+    private ArrayAdapter<String> sugerenciasAdapter;
+    private Map<String, Ciudad> mapaResultados = new HashMap<>();
+    private Timer timer = new Timer();
 
 
     @Override
@@ -90,6 +103,39 @@ public class MainActivity extends AppCompatActivity {
 
         geoAPIService = RetrofitCiudadClient.getInstance().create(GeoAPIService.class);
         weatherAPIService = RetrofitClimaClient.getInstance().create(WeatherAPIService.class);
+
+        sugerenciasAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line);
+        etConsultarClima.setAdapter(sugerenciasAdapter);
+
+        etConsultarClima.addTextChangedListener(new TextWatcher() {
+            private final long DELAY = 600;
+
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                timer.cancel();
+                timer = new Timer();
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        runOnUiThread(() -> buscarSugerencias(s.toString()));
+                    }
+                }, DELAY);
+            }
+        });
+
+        etConsultarClima.setOnItemClickListener((parent, view, position, id) -> {
+            String seleccion = (String) parent.getItemAtPosition(position);
+            Ciudad ciudad = mapaResultados.get(seleccion);
+            if (ciudad != null) {
+                obtenerClima(ciudad.getLatitude(), ciudad.getLongitude(), ciudad);
+            }
+        });
 
         btnBuscar.setOnClickListener(this::obtenerInfoBusqueda);
 
@@ -136,6 +182,38 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void buscarSugerencias(String query) {
+        if (query.length() < 4) return;
+
+        geoAPIService.getCityByName(query, 100, "es").enqueue(new Callback<CiudadList>() {
+            @Override
+            public void onResponse(Call<CiudadList> call, Response<CiudadList> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().getResults() != null) {
+                    List<Ciudad> ciudades = response.body().getResults();
+                    List<String> nombres = new ArrayList<>();
+
+                    mapaResultados.clear();
+                    for (Ciudad c : ciudades) {
+                        String nombreMostrado = c.getName() + " (" +
+                                (c.getAdmin1() != null ? c.getAdmin1() + ", " : "") +
+                                c.getCountry() + ")";
+                        nombres.add(nombreMostrado);
+                        mapaResultados.put(nombreMostrado, c);
+                    }
+
+                    sugerenciasAdapter.clear();
+                    sugerenciasAdapter.addAll(nombres);
+                    sugerenciasAdapter.notifyDataSetChanged();
+                }
+            }
+
+            @Override
+            public void onFailure(Call<CiudadList> call, Throwable t) {
+                Log.e(LOG_TAG, "Error al buscar sugerencias: " + t.getMessage());
+            }
+        });
+    }
+
     public void obtenerInfoBusqueda(View view) {
         String name = etConsultarClima.getText().toString().trim();
 
@@ -144,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
             return;
         }
 
-        geoAPIService.getCityByName(name, 1, "es").enqueue(new Callback<CiudadList>() {
+        geoAPIService.getCityByName(name, 100, "es").enqueue(new Callback<CiudadList>() {
             @Override
             public void onResponse(Call<CiudadList> call, Response<CiudadList> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getResults() != null) {
@@ -155,69 +233,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     Ciudad ciudad = ciudades.get(0);
-                    double lat = ciudad.getLatitude();
-                    double lon = ciudad.getLongitude();
-
-                    weatherAPIService.getCurrentWeather(lat, lon, true).enqueue(new Callback<Clima>() {
-                        @Override
-                        public void onResponse(Call<Clima> call, Response<Clima> response) {
-                            if (response.isSuccessful() && response.body() != null) {
-                                Clima clima = response.body();
-                                ClimaActual actual = clima.getClimaActual();
-                                Log.d(LOG_TAG, "Responde: " + new Gson().toJson(response.body()));
-
-
-                                String info = "🌆 " + ciudad.getName() + " (" + ciudad.getCountry() + ")\n"
-                                        + "🌡 Temperatura: " + actual.getTemperature() + " °C\n"
-                                        + "💨 Viento: " + actual.getWindspeed() + " km/h\n"
-                                        + "🧭 Dirección: " + actual.getWinddirection() + "°\n"
-                                        + "🕒 Hora: " + actual.getTime() + "\n"
-                                        + "🗺 Zona horaria: " + clima.getTimezone();
-
-                                tvRespuesta.setText(info);
-
-                                try {
-                                    FirebaseDatabase database = FirebaseDatabase.getInstance();
-                                    DatabaseReference ref = database.getReference("historial_clima_consulta");
-
-                                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
-                                    sdf.setTimeZone(TimeZone.getDefault());
-                                    String fechaConsulta = sdf.format(new Date());
-
-                                    HistorialClimaConsultada registro = new HistorialClimaConsultada(
-                                            ciudad.getName(),
-                                            ciudad.getCountry(),
-                                            actual.getTemperature(),
-                                            actual.getWindspeed(),
-                                            fechaConsulta
-                                    );
-
-                                    ClimaHistorial climaHistorial = new ClimaHistorial(
-                                            ciudad.getName(),
-                                            ciudad.getCountry(),
-                                            actual.getTemperature(),
-                                            actual.getWindspeed(),
-                                            fechaConsulta
-                                    );
-                                    new ClimaRepositorio(getApplication()).insert(climaHistorial);
-
-                                    ref.push().setValue(registro)
-                                            .addOnSuccessListener(aVoid -> Log.d(LOG_TAG, "Historial guardado correctamente"))
-                                            .addOnFailureListener(e -> Log.e(LOG_TAG, "Error al guardar historial: " + e.getMessage()));
-                                } catch (Exception e) {
-                                    Log.e(LOG_TAG, "Se produjo un error al guardar el historial: " + e.getMessage());
-                                }
-
-                            } else {
-                                tvRespuesta.setText("⚠️ No se pudo obtener el clima actual.");
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Call<Clima> call, Throwable t) {
-                            tvRespuesta.setText("❌ Error al obtener el clima: " + t.getMessage());
-                        }
-                    });
+                    obtenerClima(ciudad.getLatitude(), ciudad.getLongitude(), ciudad);
 
                 } else {
                     tvRespuesta.setText("⚠️ No se encontraron resultados o la respuesta fue vacía.");
@@ -229,7 +245,70 @@ public class MainActivity extends AppCompatActivity {
                 tvRespuesta.setText("❌ Error de conexión: " + t.getMessage());
             }
         });
+    }
 
+
+    private void obtenerClima(double lat, double lon, Ciudad ciudad) {
+        try {
+            weatherAPIService.getCurrentWeather(lat, lon, true).enqueue(new Callback<Clima>() {
+                @Override
+                public void onResponse(Call<Clima> call, Response<Clima> response) {
+                    if (response.isSuccessful() && response.body() != null) {
+                        Clima clima = response.body();
+
+                        String info = "📍 " + ciudad.getName() + " (" + ciudad.getCountry() + ")\n" +
+                                "🌡️ Temperatura: " + clima.getClimaActual().getTemperature() + " °C\n" +
+                                "💨 Viento: " + clima.getClimaActual().getWindspeed() + " km/h\n" +
+                                "🧭 Dirección: " + clima.getClimaActual().getWinddirection() + "°\n" +
+                                "⏰ Hora: " + clima.getClimaActual().getTime() + "\n" +
+                                "🌐 Zona horaria: " + clima.getTimezone();
+                        tvRespuesta.setText(info);
+
+                        FirebaseDatabase database = FirebaseDatabase.getInstance();
+                        DatabaseReference ref = database.getReference("historial_clima_consulta");
+
+                        String fechaConsulta = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                                .format(new Date());
+
+                        HistorialClimaConsultada registro = new HistorialClimaConsultada(
+                                ciudad.getName(),
+                                ciudad.getCountry(),
+                                clima.getClimaActual().getTemperature(),
+                                clima.getClimaActual().getWindspeed(),
+                                fechaConsulta
+                        );
+
+                        ref.push().setValue(registro)
+                                .addOnSuccessListener(aVoid -> Log.i(LOG_TAG, "Historial guardado en Firebase"))
+                                .addOnFailureListener(e -> Log.e(LOG_TAG, "Error al guardar en Firebase", e));
+
+                        new Thread(() -> {
+                            ClimaHistorial climaHistorial = new ClimaHistorial(
+                                    ciudad.getName(),
+                                    ciudad.getCountry(),
+                                    clima.getClimaActual().getTemperature(),
+                                    clima.getClimaActual().getWindspeed(),
+                                    fechaConsulta
+                            );
+                            ClimaRoomDatabase.getDatabase(getApplicationContext())
+                                    .climaDAO()
+                                    .insert(climaHistorial);
+                        }).start();
+
+                    } else {
+                        tvRespuesta.setText("⚠️ No se pudo obtener el clima actual.");
+                    }
+                }
+
+                @Override
+                public void onFailure(Call<Clima> call, Throwable t) {
+                    tvRespuesta.setText("❌ Error al obtener el clima: " + t.getMessage());
+                }
+            });
+
+        } catch (Exception e) {
+            Log.e(LOG_TAG, "Error en obtenerClima: " + e.getMessage());
+        }
     }
 
 }

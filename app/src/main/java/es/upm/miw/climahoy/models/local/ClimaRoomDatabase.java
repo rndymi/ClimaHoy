@@ -23,7 +23,7 @@ public abstract class ClimaRoomDatabase extends RoomDatabase {
             Executors.newFixedThreadPool(NUMBER_OF_THREADS);
 
 
-    static ClimaRoomDatabase getDatabase(final Context context) {
+    public static ClimaRoomDatabase getDatabase(final Context context) {
         if (INSTANCE == null) {
             synchronized (ClimaRoomDatabase.class) {
                 if (INSTANCE == null) {
