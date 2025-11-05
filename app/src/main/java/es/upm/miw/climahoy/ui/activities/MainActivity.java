@@ -1,4 +1,4 @@
-package es.upm.miw.climahoy;
+package es.upm.miw.climahoy.ui.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -31,12 +31,16 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import java.util.TimeZone;
 
+import es.upm.miw.climahoy.R;
 import es.upm.miw.climahoy.models.Ciudad;
 import es.upm.miw.climahoy.models.CiudadList;
 import es.upm.miw.climahoy.models.Clima;
 import es.upm.miw.climahoy.models.ClimaActual;
 import es.upm.miw.climahoy.models.HistorialClimaConsultada;
+import es.upm.miw.climahoy.models.local.ClimaHistorial;
+import es.upm.miw.climahoy.models.local.ClimaRepositorio;
 import es.upm.miw.climahoy.network.GeoAPI.GeoAPIService;
 import es.upm.miw.climahoy.network.GeoAPI.RetrofitCiudadClient;
 import es.upm.miw.climahoy.network.WeatherAPI.RetrofitClimaClient;
@@ -102,7 +106,10 @@ public class MainActivity extends AppCompatActivity {
         int itemId = item.getItemId();
 
         if (itemId == R.id.opcAjustes) {
-            Toast.makeText(this, "Abrir ajustes", Toast.LENGTH_SHORT).show();
+            Log.i(LOG_TAG, "opción AJUSTES");
+            Log.i(LOG_TAG, "-------------------------------------------------------");
+            Intent intent = new Intent(this, SettingActivity.class);
+            startActivity(intent);
             return true;
 
         } else if (itemId == R.id.opcAcercaDe) {
@@ -173,7 +180,10 @@ public class MainActivity extends AppCompatActivity {
                                     FirebaseDatabase database = FirebaseDatabase.getInstance();
                                     DatabaseReference ref = database.getReference("historial_clima_consulta");
 
-                                    String fechaConsulta = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date());
+                                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+                                    sdf.setTimeZone(TimeZone.getDefault());
+                                    String fechaConsulta = sdf.format(new Date());
+
                                     HistorialClimaConsultada registro = new HistorialClimaConsultada(
                                             ciudad.getName(),
                                             ciudad.getCountry(),
@@ -181,6 +191,15 @@ public class MainActivity extends AppCompatActivity {
                                             actual.getWindspeed(),
                                             fechaConsulta
                                     );
+
+                                    ClimaHistorial climaHistorial = new ClimaHistorial(
+                                            ciudad.getName(),
+                                            ciudad.getCountry(),
+                                            actual.getTemperature(),
+                                            actual.getWindspeed(),
+                                            fechaConsulta
+                                    );
+                                    new ClimaRepositorio(getApplication()).insert(climaHistorial);
 
                                     ref.push().setValue(registro)
                                             .addOnSuccessListener(aVoid -> Log.d(LOG_TAG, "Historial guardado correctamente"))

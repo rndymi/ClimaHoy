@@ -1,4 +1,4 @@
-package es.upm.miw.climahoy;
+package es.upm.miw.climahoy.ui.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
@@ -13,6 +13,8 @@ import com.google.firebase.auth.FirebaseUser;
 
 import java.util.Arrays;
 import java.util.List;
+
+import es.upm.miw.climahoy.R;
 
 public class LoginActivity extends AppCompatActivity {
 
