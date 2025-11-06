@@ -11,7 +11,7 @@ public interface WeatherAPIService {
     Call<Clima> getCurrentWeather(
             @Query("latitude") double latitude,
             @Query("longitude") double longitude,
-            @Query("current_weather") boolean currentWeather
+            @Query("current") String current
     );
 
 }

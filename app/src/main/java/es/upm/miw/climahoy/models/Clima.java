@@ -28,7 +28,7 @@ public class Clima {
     @SerializedName("elevation")
     @Expose
     private Integer elevation;
-    @SerializedName("current_weather")
+    @SerializedName("current")
     @Expose
     private ClimaActual climaActual;
 

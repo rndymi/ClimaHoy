@@ -15,16 +15,18 @@ public class ClimaHistorial {
     private String pais;
     private double temperatura;
     private double viento;
+    public String descripcionClima;
     private String fechaConsulta;
 
     public ClimaHistorial() {
     }
 
-    public ClimaHistorial(String ciudad, String pais, double temperatura, double viento, String fechaConsulta) {
+    public ClimaHistorial(String ciudad, String pais, double temperatura, double viento, String descripcionClima, String fechaConsulta) {
         this.ciudad = ciudad;
         this.pais = pais;
         this.temperatura = temperatura;
         this.viento = viento;
+        this.descripcionClima = descripcionClima;
         this.fechaConsulta = fechaConsulta;
     }
 
@@ -68,6 +70,14 @@ public class ClimaHistorial {
         this.viento = viento;
     }
 
+    public String getDescripcionClima() {
+        return descripcionClima;
+    }
+
+    public void setDescripcionClima(String descripcionClima) {
+        this.descripcionClima = descripcionClima;
+    }
+
     public String getFechaConsulta() {
         return fechaConsulta;
     }
@@ -83,7 +93,9 @@ public class ClimaHistorial {
                 ", pais='" + pais + '\'' +
                 ", temperatura=" + temperatura +
                 ", viento=" + viento +
+                ", descripcionClima='" + descripcionClima + '\'' +
                 ", fechaConsulta='" + fechaConsulta + '\'' +
                 '}';
     }
+
 }

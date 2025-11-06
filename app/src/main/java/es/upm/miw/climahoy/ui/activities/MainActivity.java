@@ -149,19 +149,16 @@ public class MainActivity extends AppCompatActivity {
         btnBuscar.setOnClickListener(v -> {
             String textoActual = etConsultarClima.getText().toString().trim();
 
-            // Evita ejecutar si está vacío
             if (textoActual.isEmpty()) {
                 Toast.makeText(this, "Introduce una ciudad o municipio", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            // Evita búsqueda repetida sin cambios
             if (busquedaRealizada && textoActual.equalsIgnoreCase(ultimaBusqueda)) {
                 Log.i("MiW", "Click ignorado: misma búsqueda sin cambios.");
                 return;
             }
 
-            // Ejecuta búsqueda y deshabilita botón
             obtenerInfoBusqueda(v);
             ultimaBusqueda = textoActual;
             busquedaRealizada = true;
@@ -298,13 +295,22 @@ public class MainActivity extends AppCompatActivity {
 
     private void obtenerClima(double lat, double lon, Ciudad ciudad) {
         try {
-            weatherAPIService.getCurrentWeather(lat, lon, true).enqueue(new Callback<Clima>() {
+            weatherAPIService.getCurrentWeather(lat, lon, "temperature,windspeed,winddirection,is_day,weathercode,cloudcover").enqueue(new Callback<Clima>() {
                 @Override
                 public void onResponse(Call<Clima> call, Response<Clima> response) {
                     if (response.isSuccessful() && response.body() != null) {
                         Clima clima = response.body();
 
-                        String info = "📍 " + ciudad.getName() + " (" + ciudad.getCountry() + ")\n" +
+                        ClimaActual actual = clima.getClimaActual();
+                        String descripcionClima = obtenerDescripcionClima(
+                                clima.getClimaActual().getWeathercode(),
+                                clima.getClimaActual().getIsDay(),
+                                clima.getClimaActual().getCloudcover()
+                        );
+                        String iconoClima = obtenerIconoClima(actual.getWeathercode(), actual.getIsDay());
+
+                        String info = iconoClima + " " + descripcionClima + "\n\n" +
+                                "📍 " + ciudad.getName() + " (" + ciudad.getCountry() + ")\n" +
                                 "🌡️ Temperatura: " + clima.getClimaActual().getTemperature() + " °C\n" +
                                 "💨 Viento: " + clima.getClimaActual().getWindspeed() + " km/h\n" +
                                 "🧭 Dirección: " + clima.getClimaActual().getWinddirection() + "°\n" +
@@ -323,6 +329,7 @@ public class MainActivity extends AppCompatActivity {
                                 ciudad.getCountry(),
                                 clima.getClimaActual().getTemperature(),
                                 clima.getClimaActual().getWindspeed(),
+                                descripcionClima,
                                 fechaConsulta
                         );
 
@@ -336,6 +343,7 @@ public class MainActivity extends AppCompatActivity {
                                     ciudad.getCountry(),
                                     clima.getClimaActual().getTemperature(),
                                     clima.getClimaActual().getWindspeed(),
+                                    descripcionClima,
                                     fechaConsulta
                             );
                             ClimaRoomDatabase.getDatabase(getApplicationContext())
@@ -416,6 +424,74 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void afterTextChanged(Editable s) {}
         });
+    }
+
+    private String obtenerDescripcionClima(int weathercode, int isDay, int cloudcover) {
+        if (cloudcover >= 80) return "Muy nublado";
+        if (cloudcover >= 50) return "Mayormente nublado";
+        if (cloudcover >= 20) return "Parcialmente nublado";
+
+        switch (weathercode) {
+            case 0:
+                return isDay == 1 ? "Despejado" : "Noche despejada";
+            case 1:
+                return "Mayormente despejado";
+            case 2:
+                return "Parcialmente soleado";
+            case 3:
+                return "Cubierto";
+            case 45: case 48:
+                return "Niebla";
+            case 51: case 53: case 55:
+                return "Llovizna";
+            case 61: case 63: case 65:
+                return "Lluvia";
+            case 71: case 73: case 75:
+                return "Nieve";
+            case 95: case 96: case 99:
+                return "Tormenta";
+            default:
+                return "Condición desconocida";
+        }
+    }
+
+    private String obtenerIconoClima(Integer code, Integer isDay) {
+        if (code == null) return "❔";
+
+        switch (code) {
+            case 0:
+                return isDay != null && isDay == 1 ? "☀️" : "🌙";
+            case 1:
+                return isDay != null && isDay == 1 ? "🌤️" : "🌙☁️";
+            case 2:
+                return isDay != null && isDay == 1 ? "⛅" : "☁️🌙";
+            case 3:
+                return "☁️";
+            case 45: case 48:
+                return "🌫️";
+            case 51: case 53: case 55:
+                return "🌦️";
+            case 56: case 57:
+                return "🌧️❄️";
+            case 61: case 63: case 65:
+                return "🌧️";
+            case 66: case 67:
+                return "🌨️";
+            case 71: case 73: case 75:
+                return "❄️";
+            case 77:
+                return "🌨️";
+            case 80: case 81: case 82:
+                return "🌦️";
+            case 85: case 86:
+                return "🌨️❄️";
+            case 95:
+                return "⛈️";
+            case 96: case 99:
+                return "🌩️";
+            default:
+                return "❔";
+        }
     }
 
 }

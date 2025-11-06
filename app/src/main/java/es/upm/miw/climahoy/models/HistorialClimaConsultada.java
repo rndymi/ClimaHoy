@@ -6,16 +6,18 @@ public class HistorialClimaConsultada {
     private String pais;
     private double temperatura;
     private double viento;
+    private String descripcionClima;
     private String fechaConsulta;
 
     public HistorialClimaConsultada() {
     }
 
-    public HistorialClimaConsultada(String ciudad, String pais, double temperatura, double viento, String fechaConsulta) {
+    public HistorialClimaConsultada(String ciudad, String pais, double temperatura, double viento, String descripcionClima, String fechaConsulta) {
         this.ciudad = ciudad;
         this.pais = pais;
         this.temperatura = temperatura;
         this.viento = viento;
+        this.descripcionClima = descripcionClima;
         this.fechaConsulta = fechaConsulta;
     }
 
@@ -51,6 +53,14 @@ public class HistorialClimaConsultada {
         this.viento = viento;
     }
 
+    public String getDescripcionClima() {
+        return descripcionClima;
+    }
+
+    public void setDescripcionClima(String descripcionClima) {
+        this.descripcionClima = descripcionClima;
+    }
+
     public String getFechaConsulta() {
         return fechaConsulta;
     }
@@ -61,10 +71,11 @@ public class HistorialClimaConsultada {
 
     @Override
     public String toString() {
-        return "🌍 " + ciudad + " (" + pais + ")\n" +
-                "🌡 Temperatura: " + temperatura + "°C\n" +
-                "💨 Viento: " + viento + " km/h\n" +
-                "📅 Fecha: " + fechaConsulta + "\n";
+        return " Ubicacion: " + ciudad + " (" + pais + ")\n" +
+                " Temperatura: " + temperatura + "°C\n" +
+                " Viento: " + viento + " km/h\n" +
+                " Tiempo: " + descripcionClima + "\n" +
+                " Fecha: " + fechaConsulta + "\n";
     }
 
 }
