@@ -5,9 +5,11 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
 import android.widget.EditText;
@@ -73,6 +75,9 @@ public class MainActivity extends AppCompatActivity {
     private Map<String, Ciudad> mapaResultados = new HashMap<>();
     private Timer timer = new Timer();
 
+    private boolean busquedaRealizada = false;
+    private String ultimaBusqueda = "";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,11 +85,7 @@ public class MainActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         setContentView(R.layout.activity_main);
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+        inicializarInsets();
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
@@ -114,7 +115,12 @@ public class MainActivity extends AppCompatActivity {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (busquedaRealizada && !s.toString().trim().equalsIgnoreCase(ultimaBusqueda.trim())) {
+                    btnBuscar.setEnabled(true);
+                    busquedaRealizada = false;
+                }
+            }
 
             @Override
             public void afterTextChanged(Editable s) {
@@ -134,11 +140,36 @@ public class MainActivity extends AppCompatActivity {
             Ciudad ciudad = mapaResultados.get(seleccion);
             if (ciudad != null) {
                 obtenerClima(ciudad.getLatitude(), ciudad.getLongitude(), ciudad);
+                btnBuscar.setEnabled(false);
+                ultimaBusqueda = seleccion;
+                busquedaRealizada = true;
             }
         });
 
-        btnBuscar.setOnClickListener(this::obtenerInfoBusqueda);
+        btnBuscar.setOnClickListener(v -> {
+            String textoActual = etConsultarClima.getText().toString().trim();
 
+            // Evita ejecutar si está vacío
+            if (textoActual.isEmpty()) {
+                Toast.makeText(this, "Introduce una ciudad o municipio", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            // Evita búsqueda repetida sin cambios
+            if (busquedaRealizada && textoActual.equalsIgnoreCase(ultimaBusqueda)) {
+                Log.i("MiW", "Click ignorado: misma búsqueda sin cambios.");
+                return;
+            }
+
+            // Ejecuta búsqueda y deshabilita botón
+            obtenerInfoBusqueda(v);
+            ultimaBusqueda = textoActual;
+            busquedaRealizada = true;
+            btnBuscar.setEnabled(false);
+            Log.i("MiW", "Click ejecutado: búsqueda realizada y botón deshabilitado.");
+        });
+
+        busquedaPorENTER();
     }
 
     @Override
@@ -146,7 +177,6 @@ public class MainActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.opciones_menu, menu);
         return true;
     }
-
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int itemId = item.getItemId();
@@ -183,7 +213,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void buscarSugerencias(String query) {
-        if (query.length() < 4) return;
+        if (query.trim().isEmpty() || query.length() < 2) return;
 
         geoAPIService.getCityByName(query, 100, "es").enqueue(new Callback<CiudadList>() {
             @Override
@@ -191,12 +221,30 @@ public class MainActivity extends AppCompatActivity {
                 if (response.isSuccessful() && response.body() != null && response.body().getResults() != null) {
                     List<Ciudad> ciudades = response.body().getResults();
                     List<String> nombres = new ArrayList<>();
-
                     mapaResultados.clear();
+
+                    String[] palabras = query.toLowerCase().split(" ");
+
                     for (Ciudad c : ciudades) {
-                        String nombreMostrado = c.getName() + " (" +
-                                (c.getAdmin1() != null ? c.getAdmin1() + ", " : "") +
-                                c.getCountry() + ")";
+                        String textoCompleto = (c.getName() + " " + c.getAdmin1() + " " + c.getCountry()).toLowerCase();
+
+                        boolean coincide = true;
+                        for (String p : palabras) {
+                            if (!textoCompleto.contains(p)) {
+                                coincide = false;
+                                break;
+                            }
+                        }
+                        if (!coincide) continue;
+
+                        String nombreMostrado = c.getName();
+                        if (c.getAdmin1() != null && !c.getAdmin1().isEmpty())
+                            nombreMostrado += " (" + c.getAdmin1();
+                        if (c.getCountry() != null && !c.getCountry().isEmpty())
+                            nombreMostrado += ", " + c.getCountry() + ")";
+                        else
+                            nombreMostrado += ")";
+
                         nombres.add(nombreMostrado);
                         mapaResultados.put(nombreMostrado, c);
                     }
@@ -204,6 +252,7 @@ public class MainActivity extends AppCompatActivity {
                     sugerenciasAdapter.clear();
                     sugerenciasAdapter.addAll(nombres);
                     sugerenciasAdapter.notifyDataSetChanged();
+                    etConsultarClima.showDropDown();
                 }
             }
 
@@ -246,7 +295,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
     }
-
 
     private void obtenerClima(double lat, double lon, Ciudad ciudad) {
         try {
@@ -298,17 +346,76 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         tvRespuesta.setText("⚠️ No se pudo obtener el clima actual.");
                     }
+                    btnBuscar.setEnabled(true);
                 }
 
                 @Override
                 public void onFailure(Call<Clima> call, Throwable t) {
                     tvRespuesta.setText("❌ Error al obtener el clima: " + t.getMessage());
+                    btnBuscar.setEnabled(true);
                 }
             });
 
         } catch (Exception e) {
             Log.e(LOG_TAG, "Error en obtenerClima: " + e.getMessage());
         }
+    }
+
+    private void inicializarInsets() {
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
+            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+            return insets;
+        });
+    }
+
+    private void busquedaPorENTER() {
+        etConsultarClima.setOnEditorActionListener((v, actionId, event) -> {
+            boolean esEnter = (actionId == EditorInfo.IME_ACTION_SEARCH) ||
+                    (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER &&
+                            event.getAction() == KeyEvent.ACTION_DOWN);
+
+            if (esEnter) {
+                String textoActual = etConsultarClima.getText().toString().trim();
+
+                if (textoActual.isEmpty()) {
+                    return true;
+                }
+
+                if (busquedaRealizada && textoActual.equalsIgnoreCase(ultimaBusqueda)) {
+                    Log.i(LOG_TAG, "ENTER ignorado: misma búsqueda sin cambios.");
+                    return true;
+                }
+
+                // Ejecutar búsqueda
+                obtenerInfoBusqueda(v);
+                ultimaBusqueda = textoActual;
+                busquedaRealizada = true;
+                btnBuscar.setEnabled(false);
+                Log.i(LOG_TAG, "ENTER ejecutado: búsqueda realizada y botón deshabilitado.");
+                return true;
+            }
+
+            return false;
+        });
+
+        etConsultarClima.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String textoNuevo = s.toString().trim();
+                if (busquedaRealizada && !textoNuevo.equalsIgnoreCase(ultimaBusqueda)) {
+                    btnBuscar.setEnabled(true);
+                    busquedaRealizada = false;
+                    Log.i(LOG_TAG, "Texto modificado: botón habilitado nuevamente.");
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
     }
 
 }

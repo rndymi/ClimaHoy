@@ -24,7 +24,7 @@
             android:layout_weight="6"
             android:padding="12dp"
             android:inputType="textCapWords"
-            android:completionThreshold="4"
+            android:completionThreshold="2"
             android:drawablePadding="8dp"
             android:hint="@string/consultarBusqueda"
             android:dropDownHeight="250dp"
@@ -39,7 +39,6 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:contentDescription="@string/btnBuscarConsulta"
-            android:onClick="obtenerInfoBusqueda"
             android:src="@android:drawable/ic_menu_search"/>
 
     </LinearLayout>
