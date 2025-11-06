@@ -31,11 +31,14 @@ public class ClimaActual {
     @SerializedName("cloudcover")
     @Expose
     private Integer cloudcover;
+    @SerializedName("precipitation")
+    @Expose
+    private Double precipitation;
 
     public ClimaActual() {
     }
 
-    public ClimaActual(String time, Integer interval, Double temperature, Double windspeed, Integer winddirection, Integer isDay, Integer weathercode, Integer cloudcover) {
+    public ClimaActual(String time, Integer interval, Double temperature, Double windspeed, Integer winddirection, Integer isDay, Integer weathercode, Integer cloudcover, Double precipitation) {
         super();
         this.time = time;
         this.interval = interval;
@@ -45,6 +48,7 @@ public class ClimaActual {
         this.isDay = isDay;
         this.weathercode = weathercode;
         this.cloudcover = cloudcover;
+        this.precipitation = precipitation;
     }
 
     public String getTime() {
@@ -111,6 +115,14 @@ public class ClimaActual {
         this.cloudcover = cloudcover;
     }
 
+    public Double getPrecipitation() {
+        return precipitation;
+    }
+
+    public void setPrecipitation(Double precipitation) {
+        this.precipitation = precipitation;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -146,6 +158,10 @@ public class ClimaActual {
         sb.append("cloudcover");
         sb.append('=');
         sb.append(((this.cloudcover == null)?"<null>":this.cloudcover));
+        sb.append(',');
+        sb.append("precipitation");
+        sb.append('=');
+        sb.append(((this.precipitation == null)?"<null>":this.precipitation));
         sb.append(',');
         if (sb.charAt((sb.length()- 1)) == ',') {
             sb.setCharAt((sb.length()- 1), ']');

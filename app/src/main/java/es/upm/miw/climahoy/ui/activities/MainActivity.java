@@ -295,7 +295,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void obtenerClima(double lat, double lon, Ciudad ciudad) {
         try {
-            weatherAPIService.getCurrentWeather(lat, lon, "temperature,windspeed,winddirection,is_day,weathercode,cloudcover").enqueue(new Callback<Clima>() {
+            weatherAPIService.getCurrentWeather(lat, lon, "temperature,windspeed,winddirection,is_day,weathercode,cloudcover,precipitation").enqueue(new Callback<Clima>() {
                 @Override
                 public void onResponse(Call<Clima> call, Response<Clima> response) {
                     if (response.isSuccessful() && response.body() != null) {
@@ -305,7 +305,8 @@ public class MainActivity extends AppCompatActivity {
                         String descripcionClima = obtenerDescripcionClima(
                                 clima.getClimaActual().getWeathercode(),
                                 clima.getClimaActual().getIsDay(),
-                                clima.getClimaActual().getCloudcover()
+                                clima.getClimaActual().getCloudcover(),
+                                clima.getClimaActual().getPrecipitation()
                         );
                         String iconoClima = obtenerIconoClima(actual.getWeathercode(), actual.getIsDay());
 
@@ -315,7 +316,11 @@ public class MainActivity extends AppCompatActivity {
                                 "💨 Viento: " + clima.getClimaActual().getWindspeed() + " km/h\n" +
                                 "🧭 Dirección: " + clima.getClimaActual().getWinddirection() + "°\n" +
                                 "⏰ Hora: " + clima.getClimaActual().getTime() + "\n" +
-                                "🌐 Zona horaria: " + clima.getTimezone();
+                                "🌐 Zona horaria: " + clima.getTimezone() + "\n";
+
+                                if (actual.getPrecipitation() != null && actual.getPrecipitation() > 0.1) {
+                                    info += "☂️ Precipitación: " + actual.getPrecipitation() + " mm";
+                                }
                         tvRespuesta.setText(info);
 
                         FirebaseDatabase database = FirebaseDatabase.getInstance();
@@ -324,12 +329,15 @@ public class MainActivity extends AppCompatActivity {
                         String fechaConsulta = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
                                 .format(new Date());
 
+                        String descripcionFinal = descripcionClima;
+                        final String descripcionFinalSafe = descripcionFinal;
+
                         HistorialClimaConsultada registro = new HistorialClimaConsultada(
                                 ciudad.getName(),
                                 ciudad.getCountry(),
                                 clima.getClimaActual().getTemperature(),
                                 clima.getClimaActual().getWindspeed(),
-                                descripcionClima,
+                                descripcionFinal,
                                 fechaConsulta
                         );
 
@@ -343,9 +351,10 @@ public class MainActivity extends AppCompatActivity {
                                     ciudad.getCountry(),
                                     clima.getClimaActual().getTemperature(),
                                     clima.getClimaActual().getWindspeed(),
-                                    descripcionClima,
+                                    descripcionFinalSafe,
                                     fechaConsulta
                             );
+
                             ClimaRoomDatabase.getDatabase(getApplicationContext())
                                     .climaDAO()
                                     .insert(climaHistorial);
@@ -426,7 +435,35 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private String obtenerDescripcionClima(int weathercode, int isDay, int cloudcover) {
+    private String obtenerDescripcionClima(int weathercode, int isDay, int cloudcover, Double precipitation) {
+        if (precipitation != null && precipitation > 0.1) {
+            if (precipitation < 0.6)
+                return "Llovizna leve";
+            else if (precipitation < 2.0)
+                return "Lluvia ligera";
+            else if (precipitation < 4.0)
+                return "Lluvia moderada";
+            else if (precipitation < 8.0)
+                return "Lluvia fuerte";
+            else if (precipitation < 15.0)
+                return "Lluvia muy intensa";
+            else
+                return "Tormenta torrencial";
+        }
+
+        switch (weathercode) {
+            case 45: case 48:
+                return "Niebla";
+            case 51: case 53: case 55:
+                return "Llovizna";
+            case 61: case 63: case 65:
+                return "Lluvia";
+            case 71: case 73: case 75:
+                return "Nieve";
+            case 95: case 96: case 99:
+                return "Tormenta";
+        }
+
         if (cloudcover >= 80) return "Muy nublado";
         if (cloudcover >= 50) return "Mayormente nublado";
         if (cloudcover >= 20) return "Parcialmente nublado";
@@ -440,16 +477,6 @@ public class MainActivity extends AppCompatActivity {
                 return "Parcialmente soleado";
             case 3:
                 return "Cubierto";
-            case 45: case 48:
-                return "Niebla";
-            case 51: case 53: case 55:
-                return "Llovizna";
-            case 61: case 63: case 65:
-                return "Lluvia";
-            case 71: case 73: case 75:
-                return "Nieve";
-            case 95: case 96: case 99:
-                return "Tormenta";
             default:
                 return "Condición desconocida";
         }
