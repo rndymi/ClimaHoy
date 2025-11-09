@@ -11,8 +11,8 @@ import java.util.List;
 @Dao
 public interface ClimaConsultasDAO {
 
-    @Query("SELECT * FROM " + ClimaConsultas.TABLA + " ORDER BY fechaConsulta DESC")
-    LiveData<List<ClimaConsultas>> getAll();
+    @Query("SELECT * FROM " + ClimaConsultas.TABLA + " ORDER BY fechaConsulta DESC LIMIT 10")
+    LiveData<List<ClimaConsultas>> getUltimasConsultas();
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     void insert(ClimaConsultas climaConsultas);

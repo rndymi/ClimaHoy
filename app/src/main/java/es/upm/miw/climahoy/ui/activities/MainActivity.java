@@ -212,6 +212,13 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
             return true;
 
+        } else if (itemId == R.id.opcUltimasConsultas) {
+            Log.i(LOG_TAG, "opción MEJORES RESULTADOS");
+            Log.i(LOG_TAG, "-------------------------------------------------------");
+            Intent abrir = new Intent(this, UltimasConsultasActivity.class);
+            startActivity(abrir);
+            return true;
+
         } else if (itemId == R.id.opcAcercaDe) {
             new AlertDialog.Builder(this)
                     .setTitle(R.string.about_title)

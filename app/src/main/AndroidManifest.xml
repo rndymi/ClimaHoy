@@ -32,6 +32,10 @@
 
         <activity android:name=".ui.activities.SettingActivity">
         </activity>
+
+        <activity android:name=".ui.activities.UltimasConsultasActivity">
+        </activity>
+
     </application>
 
 </manifest>

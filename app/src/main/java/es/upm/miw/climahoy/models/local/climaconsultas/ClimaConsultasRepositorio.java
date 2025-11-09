@@ -11,16 +11,16 @@ import es.upm.miw.climahoy.models.local.ClimaRoomDatabase;
 public class ClimaConsultasRepositorio {
 
     private ClimaConsultasDAO mClimaConsultasDAO;
-    private LiveData<List<ClimaConsultas>> historial;
+    private LiveData<List<ClimaConsultas>> mUltimasConsultas;
 
     public ClimaConsultasRepositorio(Application application) {
         ClimaRoomDatabase db = ClimaRoomDatabase.getDatabase(application);
         mClimaConsultasDAO = db.climaConsultasDAO();
-        historial = mClimaConsultasDAO.getAll();
+        mUltimasConsultas = mClimaConsultasDAO.getUltimasConsultas();
     }
 
-    public LiveData<List<ClimaConsultas>> getAllHistorial() {
-        return historial;
+    public LiveData<List<ClimaConsultas>> getUltimasConsultas() {
+        return mUltimasConsultas;
     }
 
     public void insert(ClimaConsultas registro) {

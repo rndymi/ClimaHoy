@@ -4,9 +4,11 @@
     <string name="btnBuscarConsulta">Botón buscar</string>
     <string name="consultarBusqueda">Cuidad o Municipio</string>
 
-    <!-- Ajustes -->
+    <!-- Menus -->
     <string name="menu_ajustes">Ajustes</string>
     <string name="key_Ajustes"> opc_Fichero </string>
+
+    <string name="menu_ultimasconsultas">Ultimas Consultas</string>
 
     <string name="menu_acerca">Acerca de</string>
     <string name="menu_cerrar_sesion">Cerrar sesión</string>
