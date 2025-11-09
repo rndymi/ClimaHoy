@@ -24,11 +24,6 @@ public class UltimasConsultasActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        getSupportFragmentManager()
-                .beginTransaction()
-                .replace(android.R.id.content, new SettingActivity.SettingActivityFragment())
-                .commit();
-
         RecyclerView recyclerView = findViewById(R.id.recyclerViewConsultas);
         final ClimaConsultasListAdapter adapter = new ClimaConsultasListAdapter(this);
         recyclerView.setAdapter(adapter);

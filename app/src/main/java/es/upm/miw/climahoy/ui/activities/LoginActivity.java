@@ -37,14 +37,13 @@ public class LoginActivity extends AppCompatActivity {
     private void startSignInFlow() {
         List<AuthUI.IdpConfig> providers = Arrays.asList(
                 new AuthUI.IdpConfig.EmailBuilder().build(),
-                new AuthUI.IdpConfig.GoogleBuilder().build(),
                 new AuthUI.IdpConfig.AnonymousBuilder().build()
         );
 
         Intent signInIntent = AuthUI.getInstance()
                 .createSignInIntentBuilder()
                 .setAvailableProviders(providers)
-                .setLogo(R.drawable.ic_launcher_foreground)
+                .setLogo(R.drawable.ic_climahoy_foreground)
                 .setTheme(R.style.Theme_ClimaHoy)
                 .setTosAndPrivacyPolicyUrls(
                         "https://firebase.google.com/terms/",

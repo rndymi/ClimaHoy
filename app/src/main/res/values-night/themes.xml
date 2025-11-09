@@ -1,7 +1,25 @@
-<resources xmlns:tools="http://schemas.android.com/tools">
-    <!-- Base application theme. -->
-    <style name="Base.Theme.ClimaHoy" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your dark theme here. -->
-        <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
+<resources>
+    <style name="Theme.ClimaHoy" parent="Theme.MaterialComponents.Light.DarkActionBar">
+        <!-- Colores principales -->
+        <item name="colorPrimary">@color/colorPrimaryDarkMode</item>
+        <item name="colorPrimaryVariant">@color/colorPrimaryDarkMode</item>
+        <item name="colorSecondary">@color/colorSecondaryDarkMode</item>
+
+        <!-- Fondo y texto del cuerpo -->
+        <item name="android:colorBackground">@color/colorBackgroundDarkMode</item>
+        <item name="android:textColor">@color/colorOnBackgroundDarkMode</item>
+
+        <!-- ActionBar -->
+        <item name="android:actionBarStyle">@style/ClimaHoy.ActionBar</item>
+    </style>
+
+    <style name="ClimaHoy.ActionBar" parent="Widget.AppCompat.ActionBar.Solid">
+        <item name="background">@color/colorPrimaryDarkMode</item>
+        <item name="titleTextStyle">@style/ClimaHoy.ActionBar.TitleText</item>
+    </style>
+
+    <style name="ClimaHoy.ActionBar.TitleText" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
+        <item name="android:textColor">@color/colorOnPrimaryDarkMode</item>
+        <item name="android:textStyle">bold</item>
     </style>
 </resources>

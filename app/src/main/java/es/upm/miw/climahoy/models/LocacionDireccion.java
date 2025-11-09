@@ -7,7 +7,6 @@ import com.google.gson.annotations.SerializedName;
 @Generated("jsonschema2pojo")
 public class LocacionDireccion {
 
-
     @SerializedName("house_number")
     @Expose
     private String houseNumber;

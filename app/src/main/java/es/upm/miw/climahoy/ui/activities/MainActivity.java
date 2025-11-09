@@ -2,6 +2,7 @@ package es.upm.miw.climahoy.ui.activities;
 
 import android.Manifest;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.Editable;
@@ -21,10 +22,12 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.core.app.ActivityCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.preference.PreferenceManager;
 
 import com.firebase.ui.auth.AuthUI;
 import com.google.android.gms.location.FusedLocationProviderClient;
@@ -76,6 +79,8 @@ public class MainActivity extends AppCompatActivity {
     private WeatherAPIService weatherAPIService;
     private NominatimAPIService nominatimAPIService;
 
+    private SharedPreferences preferencias;
+
     private ImageButton btnBuscar;
     private TextView tvRespuesta;
     private AutoCompleteTextView etConsultarClima;
@@ -117,6 +122,8 @@ public class MainActivity extends AppCompatActivity {
         geoAPIService = RetrofitCiudadClient.getInstance().create(GeoAPIService.class);
         weatherAPIService = RetrofitClimaClient.getInstance().create(WeatherAPIService.class);
         nominatimAPIService = RetrofitNominatimClient.getInstance().create(NominatimAPIService.class);
+
+        preferencias = PreferenceManager.getDefaultSharedPreferences(this);
 
         sugerenciasAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line);
         etConsultarClima.setAdapter(sugerenciasAdapter);
@@ -180,7 +187,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
-        obtenerClimaUbicacionActual();
+        //obtenerClimaUbicacionActual();
 
         MaterialCardView cardClimaActual = findViewById(R.id.cardClimaActual);
         cardClimaActual.setOnClickListener(v -> {
@@ -194,6 +201,24 @@ public class MainActivity extends AppCompatActivity {
         });
 
         busquedaPorENTER();
+
+
+        boolean darkMode = preferencias.getBoolean("pref_ModoOscuro", false);
+        AppCompatDelegate.setDefaultNightMode(
+                darkMode ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO
+        );
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        obtenerClimaUbicacionActual();
+
+        etConsultarClima = findViewById(R.id.etConsultarClima);
+        if (etConsultarClima != null) {
+            etConsultarClima.clearFocus();
+            etConsultarClima.dismissDropDown();
+        }
     }
 
     @Override

@@ -2,8 +2,11 @@ package es.upm.miw.climahoy.ui.activities;
 
 import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.app.AppCompatDelegate;
 import androidx.preference.PreferenceFragmentCompat;
 
 import es.upm.miw.climahoy.R;
@@ -54,7 +57,16 @@ public class SettingActivity extends AppCompatActivity {
 
         private final SharedPreferences.OnSharedPreferenceChangeListener prefChangeListener =
                 (sharedPreferences, key) -> {
+                    if ("pref_ModoOscuro".equals(key)) {
+                        boolean dark = sharedPreferences.getBoolean(key, false);
+                        int mode = dark ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO;
 
+                        if (AppCompatDelegate.getDefaultNightMode() != mode) {
+                            new Handler(Looper.getMainLooper()).postDelayed(() -> {
+                                AppCompatDelegate.setDefaultNightMode(mode);
+                            }, 150);
+                        }
+                    }
                 };
 
     }

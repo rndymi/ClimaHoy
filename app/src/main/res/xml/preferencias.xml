@@ -2,8 +2,17 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <!-- Categoría de apariencia -->
     <PreferenceCategory
-        android:key="opc_Fichero">
+        android:key="opc_Apariencia"
+        android:title="@string/title_Apariencia">
+
+        <SwitchPreferenceCompat
+            android:key="pref_ModoOscuro"
+            android:title="@string/title_ModoOscuro"
+            android:summary="@string/summary_ModoOscuro"
+            android:defaultValue="false"
+            android:icon="@drawable/routine_36dp" />
 
     </PreferenceCategory>
 

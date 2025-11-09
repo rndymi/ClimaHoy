@@ -21,5 +21,13 @@
     <string name="txtDescripcionActual"> Descripción... </string>
     <string name="txtTemperaturaActual"> 0 °C </string>
 
+    <!-- Preferencias -->
+    <string name="title_Apariencia">APARIENCIA</string>
+    <string name="title_ModoOscuro">Modo Oscuro</string>
+    <string name="summary_ModoOscuro">Habilitar o deshabilitar el modo oscuro</string>
+
+    <!-- Ultimas consultas -->
+    <string name="title_ConsultasMeteo">🕓 Últimas consultas meteorológicas</string>
+
 
 </resources>

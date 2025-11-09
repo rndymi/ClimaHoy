@@ -9,4 +9,12 @@
     <color name="colorPrimaryContainer">#B18AE3</color>
     <color name="colorSecondary">#FA9B9B</color>
 
+    <!-- Modo oscuro -->
+    <color name="colorPrimaryDarkMode">#7B4CB3</color>
+    <color name="colorOnPrimaryDarkMode">#ffeded</color>
+    <color name="colorBackgroundDarkMode">#d6d6d6</color>
+    <color name="colorOnBackgroundDarkMode">#000000</color>
+    <color name="colorPrimaryContainerDarkMode">#5D3891</color>
+    <color name="colorSecondaryDarkMode">#E88282</color>
+
 </resources>
