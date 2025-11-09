@@ -11,11 +11,14 @@ import androidx.sqlite.db.SupportSQLiteDatabase;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-@Database(entities = {ClimaHistorial.class}, version = 1, exportSchema = false)
+import es.upm.miw.climahoy.models.local.climaconsultas.ClimaConsultasDAO;
+import es.upm.miw.climahoy.models.local.climaconsultas.ClimaConsultas;
+
+@Database(entities = {ClimaConsultas.class}, version = 1, exportSchema = false)
 public abstract class ClimaRoomDatabase extends RoomDatabase {
 
-    public static final String BASE_DATOS = ClimaHistorial.TABLA + ".db";
-    public abstract ClimaDAO climaDAO();
+    public static final String BASE_DATOS = ClimaConsultas.TABLA + ".db";
+    public abstract ClimaConsultasDAO climaConsultasDAO();
     private static volatile ClimaRoomDatabase INSTANCE;
     private static final int NUMBER_OF_THREADS = 4;
 
@@ -53,7 +56,7 @@ public abstract class ClimaRoomDatabase extends RoomDatabase {
                         public void run() {
                             // Populate the database in the background.
                             // If you want to start with more groups, just add them.
-                            ClimaDAO dao = INSTANCE.climaDAO();
+                            ClimaConsultasDAO dao = INSTANCE.climaConsultasDAO();
                         }
                     });
                 }

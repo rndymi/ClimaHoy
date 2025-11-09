@@ -14,4 +14,10 @@
     <string name="about_title">Acerca de Clima Hoy</string>
     <string name="about_message">Aplicación para consultar el clima actual en tu ciudad.</string>
 
+    <!-- Ubicacion actual mostrada -->
+    <string name="txtUbicacionActual"> 📍Ubicación... </string>
+    <string name="txtDescripcionActual"> Descripción... </string>
+    <string name="txtTemperaturaActual"> 0 °C </string>
+
+
 </resources>

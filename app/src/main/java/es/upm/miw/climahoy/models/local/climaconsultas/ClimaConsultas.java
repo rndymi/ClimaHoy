@@ -1,10 +1,10 @@
-package es.upm.miw.climahoy.models.local;
+package es.upm.miw.climahoy.models.local.climaconsultas;
 
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
 
-@Entity(tableName = ClimaHistorial.TABLA)
-public class ClimaHistorial {
+@Entity(tableName = ClimaConsultas.TABLA)
+public class ClimaConsultas {
 
     static public final String TABLA = "climahistoriales";
 
@@ -18,10 +18,10 @@ public class ClimaHistorial {
     public String descripcionClima;
     private String fechaConsulta;
 
-    public ClimaHistorial() {
+    public ClimaConsultas() {
     }
 
-    public ClimaHistorial(String ciudad, String pais, double temperatura, double viento, String descripcionClima, String fechaConsulta) {
+    public ClimaConsultas(String ciudad, String pais, double temperatura, double viento, String descripcionClima, String fechaConsulta) {
         this.ciudad = ciudad;
         this.pais = pais;
         this.temperatura = temperatura;

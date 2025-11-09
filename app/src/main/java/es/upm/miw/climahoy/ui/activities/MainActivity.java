@@ -1,6 +1,8 @@
 package es.upm.miw.climahoy.ui.activities;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -12,7 +14,6 @@ import android.view.View;
 import android.view.inputmethod.EditorInfo;
 import android.widget.ArrayAdapter;
 import android.widget.AutoCompleteTextView;
-import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -20,16 +21,20 @@ import android.widget.Toast;
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.firebase.ui.auth.AuthUI;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationResult;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.material.card.MaterialCardView;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.gson.Gson;
 
 import org.jspecify.annotations.NonNull;
 
@@ -40,7 +45,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TimeZone;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -50,11 +54,14 @@ import es.upm.miw.climahoy.models.CiudadList;
 import es.upm.miw.climahoy.models.Clima;
 import es.upm.miw.climahoy.models.ClimaActual;
 import es.upm.miw.climahoy.models.HistorialClimaConsultada;
-import es.upm.miw.climahoy.models.local.ClimaHistorial;
-import es.upm.miw.climahoy.models.local.ClimaRepositorio;
+import es.upm.miw.climahoy.models.Locacion;
+import es.upm.miw.climahoy.models.LocacionDireccion;
+import es.upm.miw.climahoy.models.local.climaconsultas.ClimaConsultas;
 import es.upm.miw.climahoy.models.local.ClimaRoomDatabase;
 import es.upm.miw.climahoy.network.GeoAPI.GeoAPIService;
 import es.upm.miw.climahoy.network.GeoAPI.RetrofitCiudadClient;
+import es.upm.miw.climahoy.network.NominatimAPI.NominatimAPIService;
+import es.upm.miw.climahoy.network.NominatimAPI.RetrofitNominatimClient;
 import es.upm.miw.climahoy.network.WeatherAPI.RetrofitClimaClient;
 import es.upm.miw.climahoy.network.WeatherAPI.WeatherAPIService;
 import retrofit2.Call;
@@ -67,6 +74,7 @@ public class MainActivity extends AppCompatActivity {
 
     private GeoAPIService geoAPIService;
     private WeatherAPIService weatherAPIService;
+    private NominatimAPIService nominatimAPIService;
 
     private ImageButton btnBuscar;
     private TextView tvRespuesta;
@@ -77,6 +85,10 @@ public class MainActivity extends AppCompatActivity {
 
     private boolean busquedaRealizada = false;
     private String ultimaBusqueda = "";
+
+    private FusedLocationProviderClient fusedLocationClient;
+    private long ultimaActualizacion = 0;
+    private static final long COOLDOWN_MS = 3 * 60 * 1000;
 
 
     @Override
@@ -89,14 +101,14 @@ public class MainActivity extends AppCompatActivity {
 
         FirebaseUser user = FirebaseAuth.getInstance().getCurrentUser();
 
-        if (user != null) {
-            String name = (user.getDisplayName() != null ? user.getDisplayName() : "Sin nombre");
-            String email = user.getEmail() != null ? user.getEmail() : "Sin email";
-            Toast.makeText(this, "Usuario: " + name + "\nEmail: " + email, Toast.LENGTH_LONG).show();
-        } else {
-            startActivity(new Intent(this, LoginActivity.class));
-            finish();
-        }
+            if (user != null) {
+                String name = (user.getDisplayName() != null ? user.getDisplayName() : "Sin nombre");
+                String email = user.getEmail() != null ? user.getEmail() : "Sin email";
+                Toast.makeText(this, "Usuario: " + name + "\nEmail: " + email, Toast.LENGTH_LONG).show();
+            } else {
+                startActivity(new Intent(this, LoginActivity.class));
+                finish();
+            }
 
         etConsultarClima = findViewById(R.id.etConsultarClima);
         btnBuscar = findViewById(R.id.btnBuscar);
@@ -104,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
 
         geoAPIService = RetrofitCiudadClient.getInstance().create(GeoAPIService.class);
         weatherAPIService = RetrofitClimaClient.getInstance().create(WeatherAPIService.class);
+        nominatimAPIService = RetrofitNominatimClient.getInstance().create(NominatimAPIService.class);
 
         sugerenciasAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line);
         etConsultarClima.setAdapter(sugerenciasAdapter);
@@ -166,6 +179,20 @@ public class MainActivity extends AppCompatActivity {
             Log.i("MiW", "Click ejecutado: búsqueda realizada y botón deshabilitado.");
         });
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        obtenerClimaUbicacionActual();
+
+        MaterialCardView cardClimaActual = findViewById(R.id.cardClimaActual);
+        cardClimaActual.setOnClickListener(v -> {
+            long ahora = System.currentTimeMillis();
+            if (ahora - ultimaActualizacion >= COOLDOWN_MS) {
+                obtenerClimaUbicacionActual();
+                ultimaActualizacion = ahora;
+            } else {
+                Toast.makeText(this, "⏳ Espera unos minutos antes de actualizar", Toast.LENGTH_SHORT).show();
+            }
+        });
+
         busquedaPorENTER();
     }
 
@@ -207,6 +234,105 @@ public class MainActivity extends AppCompatActivity {
 
             return super.onOptionsItemSelected(item);
         }
+    }
+
+    private void obtenerClimaUbicacionActual() {
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED &&
+                ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION}, 1);
+            return;
+        }
+
+        fusedLocationClient.getLastLocation().addOnSuccessListener(this, location -> {
+            if (location != null) {
+                double lat = location.getLatitude();
+                double lon = location.getLongitude();
+
+                Log.i(LOG_TAG, "Lat: " + lat + " | Lon: " + lon);
+
+                Call<Locacion> call = nominatimAPIService.getReverseNominatim( lat, lon, "json", 1, 18, "es");
+
+                call.enqueue(new Callback<Locacion>() {
+                    @Override
+                    public void onResponse(Call<Locacion> call, Response<Locacion> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+
+                            Locacion locacion = response.body();
+                            LocacionDireccion direccion = locacion.getAddress();
+
+                            final String[] nombreCiudad = {"Ubicación desconocida"};
+                            if (direccion != null) {
+                                if (direccion.getCity() != null) {
+                                    nombreCiudad[0] = direccion.getCity();
+                                } else if (direccion.getSuburb() != null) {
+                                    nombreCiudad[0] = direccion.getSuburb();
+                                } else if (direccion.getQuarter() != null) {
+                                    nombreCiudad[0] = direccion.getQuarter();
+                                }
+                            }
+
+                            Log.i(LOG_TAG, "Ciudad detectada: " + nombreCiudad[0]);
+
+                            weatherAPIService.getCurrentWeather(
+                                            lat,
+                                            lon,
+                                            "temperature,windspeed,winddirection,is_day,weathercode,cloudcover,precipitation"
+                                    )
+                                    .enqueue(new Callback<Clima>() {
+                                        @Override
+                                        public void onResponse(Call<Clima> call, Response<Clima> response) {
+                                            if (response.isSuccessful() && response.body() != null) {
+                                                Clima clima = response.body();
+                                                ClimaActual actual = clima.getClimaActual();
+
+                                                String descripcion = obtenerDescripcionClima(
+                                                        actual.getWeathercode(),
+                                                        actual.getIsDay(),
+                                                        actual.getCloudcover(),
+                                                        actual.getPrecipitation()
+                                                );
+
+                                                ((TextView) findViewById(R.id.tvUbicacionActual))
+                                                        .setText("📍 " + nombreCiudad[0] + ", " + direccion.getCountry());
+
+                                                ((TextView) findViewById(R.id.tvDescripcionActual))
+                                                        .setText(descripcion);
+
+                                                ((TextView) findViewById(R.id.tvTemperaturaActual))
+                                                        .setText("🌡️ " + actual.getTemperature() + " °C");
+
+                                            } else {
+                                                ((TextView) findViewById(R.id.tvUbicacionActual))
+                                                        .setText("Error al obtener clima");
+                                            }
+                                        }
+
+                                        @Override
+                                        public void onFailure(Call<Clima> call, Throwable t) {
+                                            Log.i(LOG_TAG, "Error en API de clima: " + t.getMessage());
+                                        }
+                                    });
+
+                        } else {
+                            ((TextView) findViewById(R.id.tvUbicacionActual))
+                                    .setText("Ubicación no encontrada");
+                            Log.i(LOG_TAG, "Respuesta vacía de Nominatim");
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<Locacion> call, Throwable t) {
+                        ((TextView) findViewById(R.id.tvUbicacionActual))
+                                .setText("Error al obtener ubicación");
+                        Log.i(LOG_TAG, "Error en Nominatim: " + t.getMessage());
+                    }
+                });
+
+            } else {
+                Toast.makeText(this, "No se pudo obtener tu ubicación actual.", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void buscarSugerencias(String query) {
@@ -255,7 +381,7 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onFailure(Call<CiudadList> call, Throwable t) {
-                Log.e(LOG_TAG, "Error al buscar sugerencias: " + t.getMessage());
+                Log.i(LOG_TAG, "Error al buscar sugerencias: " + t.getMessage());
             }
         });
     }
@@ -343,10 +469,10 @@ public class MainActivity extends AppCompatActivity {
 
                         ref.push().setValue(registro)
                                 .addOnSuccessListener(aVoid -> Log.i(LOG_TAG, "Historial guardado en Firebase"))
-                                .addOnFailureListener(e -> Log.e(LOG_TAG, "Error al guardar en Firebase", e));
+                                .addOnFailureListener(e -> Log.i(LOG_TAG, "Error al guardar en Firebase", e));
 
                         new Thread(() -> {
-                            ClimaHistorial climaHistorial = new ClimaHistorial(
+                            ClimaConsultas climaConsultas = new ClimaConsultas(
                                     ciudad.getName(),
                                     ciudad.getCountry(),
                                     clima.getClimaActual().getTemperature(),
@@ -356,8 +482,8 @@ public class MainActivity extends AppCompatActivity {
                             );
 
                             ClimaRoomDatabase.getDatabase(getApplicationContext())
-                                    .climaDAO()
-                                    .insert(climaHistorial);
+                                    .climaConsultasDAO()
+                                    .insert(climaConsultas);
                         }).start();
 
                     } else {
@@ -374,7 +500,7 @@ public class MainActivity extends AppCompatActivity {
             });
 
         } catch (Exception e) {
-            Log.e(LOG_TAG, "Error en obtenerClima: " + e.getMessage());
+            Log.i(LOG_TAG, "Error en obtenerClima: " + e.getMessage());
         }
     }
 
