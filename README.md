@@ -15,7 +15,7 @@ App Android para **consultar el clima actual** de una ciudad/municipio o desde t
 
 ---
 
-## Valor del proyecto (para reclutador)
+## Valor del proyecto
 
 Este repo demuestra trabajo real de un proyecto Android con:
 - **Consumo de APIs REST** usando **Retrofit + Gson** (capas `network/*Service` y modelos `models/*`).
